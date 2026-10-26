@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>UberPro & Vendas — Controle Diário</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- HEADER FIXO COM SELETOR DE DATA -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <span class="brand-icon">🚗</span>
+        <div>
+          <h1>UberPro <span class="brand-accent">&amp; Vendas</span></h1>
+          <p class="subtitle">Controle diário de corridas e itens extras</p>
+        </div>
+      </div>
+      <button id="btnToday" class="btn-today" title="Ir para Hoje">Hoje</button>
+    </div>
+
+    <div class="date-bar">
+      <button id="btnPrevDay" class="date-nav-btn" aria-label="Dia anterior">◀</button>
+      <div class="date-input-wrapper">
+        <input type="date" id="selectedDate" aria-label="Selecionar data" />
+        <span id="dateFormattedLabel" class="date-label">Hoje</span>
+      </div>
+      <button id="btnNextDay" class="date-nav-btn" aria-label="Próximo dia">▶</button>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="app-content">
+
+    <!-- RESUMO GERAL DO DIA (Visível nas abas de Corridas e Vender) -->
+    <section id="dailyHeroSummary" class="hero-card">
+      <div class="hero-main">
+        <span class="hero-label">LUCRO LÍQUIDO TOTAL DO DIA</span>
+        <strong id="heroTotalNetProfit" class="hero-value">R$ 0,00</strong>
+        <span id="heroGrossRevenue" class="hero-sub">Faturamento bruto total: R$ 0,00</span>
+      </div>
+      <div class="hero-split">
+        <div class="hero-pill uber-pill">
+          <span class="pill-title">🚗 Lucro Uber</span>
+          <strong id="heroUberNet">R$ 0,00</strong>
+          <small id="heroUberDetail">Bruto: R$ 0,00 | Comb.: R$ 0,00</small>
+        </div>
+        <div class="hero-pill sales-pill">
+          <span class="pill-title">🍫 Lucro Vendas</span>
+          <strong id="heroSalesNet">R$ 0,00</strong>
+          <small id="heroSalesDetail">Vendido: R$ 0,00 (0 itens)</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALERTA GLOBAL DE ESTOQUE BAIXO -->
+    <div id="lowStockBanner" class="low-stock-banner hidden">
+      <div class="banner-text">
+        <span>⚠️</span>
+        <span id="lowStockBannerText">Itens com estoque baixo!</span>
+      </div>
+      <button type="button" class="banner-action" data-goto-tab="tab-estoque">Ver estoque</button>
+    </div>
+
+    <!-- ==========================================
+         ABA 1: CORRIDAS DO DIA (UBER)
+         ========================================== -->
+    <section id="tab-corridas" class="tab-panel active">
+      <div class="card">
+        <div class="card-header">
+          <h2>📝 Dados das Corridas no Dia</h2>
+          <span id="saveStatusIndicator" class="save-badge">Salvo</span>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="uberEarnings">💰 Ganhos nas Corridas (R$)</label>
+            <div class="input-with-QuickAdd">
+              <input type="number" id="uberEarnings" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+            </div>
+            <div class="quick-chips">
+              <button type="button" class="chip-btn" data-add-field="uberEarnings" data-amount="15">+R$ 15</button>
+              <button type="button" class="chip-btn" data-add-field="uberEarnings" data-amount="25">+R$ 25</button>
+              <button type="button" class="chip-btn" data-add-field="uberEarnings" data-amount="50">+R$ 50</button>
+              <button type="button" class="chip-btn" data-add-field="uberEarnings" data-amount="100">+R$ 100</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="uberFuel">⛽ Gasto com Combustível (R$)</label>
+            <input type="number" id="uberFuel" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+            <div class="quick-chips">
+              <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="30">+R$ 30</button>
+              <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="50">+R$ 50</button>
+              <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="100">+R$ 100</button>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="uberKm">🛣️ KM Rodados no Dia</label>
+              <input type="number" id="uberKm" step="0.1" min="0" placeholder="0" inputmode="decimal" />
+              <div class="quick-chips">
+                <button type="button" class="chip-btn" data-add-field="uberKm" data-amount="10">+10 km</button>
+                <button type="button" class="chip-btn" data-add-field="uberKm" data-amount="50">+50 km</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="uberTrips">🏁 Nº de Corridas</label>
+              <div class="stepper-control">
+                <button type="button" id="btnDecrementTrip" class="stepper-btn" aria-label="Diminuir corrida">−</button>
+                <input type="number" id="uberTrips" step="1" min="0" placeholder="0" inputmode="numeric" />
+                <button type="button" id="btnIncrementTrip" class="stepper-btn stepper-plus" aria-label="Somar corrida">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="uberNotes">🗒️ Observações do Dia (opcional)</label>
+            <input type="text" id="uberNotes" placeholder="Ex: Dia chuvoso, dinâmica boa à noite..." />
+          </div>
+        </div>
+      </div>
+
+      <!-- MÉTRICAS DE DESEMPENHO DO DIA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📊 Desempenho nas Corridas</h2>
+        </div>
+        <div class="metrics-grid">
+          <div class="metric-box highlight-green">
+            <span class="metric-label">Lucro Líquido Uber</span>
+            <strong id="metricUberProfit" class="metric-val">R$ 0,00</strong>
+            <small>Ganhos − Combustível</small>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Ganho Bruto / KM</span>
+            <strong id="metricPerKm" class="metric-val">R$ 0,00/km</strong>
+            <small id="metricNetPerKm">Líquido: R$ 0,00/km</small>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Média por Corrida</span>
+            <strong id="metricPerTrip" class="metric-val">R$ 0,00</strong>
+            <small id="metricKmPerTrip">0,0 km / corrida</small>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Custo Combustível</span>
+            <strong id="metricFuelPerKm" class="metric-val">R$ 0,00/km</strong>
+            <small id="metricFuelPct">0% dos ganhos</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 2: CONTROLE DE VENDAS (1 CLIQUE)
+         ========================================== -->
+    <section id="tab-vendas" class="tab-panel">
+      <!-- RESUMO DAS VENDAS DO DIA -->
+      <div class="card sales-summary-card">
+        <div class="sales-summary-grid">
+          <div>
+            <span class="s-label">Vendido Hoje (Bruto)</span>
+            <strong id="salesDayGross" class="s-val">R$ 0,00</strong>
+          </div>
+          <div>
+            <span class="s-label">Custo dos Itens</span>
+            <strong id="salesDayCost" class="s-val text-muted">R$ 0,00</strong>
+          </div>
+          <div>
+            <span class="s-label">Lucro nas Vendas</span>
+            <strong id="salesDayProfit" class="s-val text-emerald">R$ 0,00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÕES DE VENDA RÁPIDA COM 1 TOQUE -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>⚡ Toque para Registrar Venda</h2>
+            <p class="card-sub">Clique no item vendido para somar na hora e descontar do estoque</p>
+          </div>
+          <button type="button" id="btnUndoLastSale" class="btn-undo hidden" title="Desfazer última venda">
+            ↩ Desfazer última
+          </button>
+        </div>
+
+        <div id="quickSaleGrid" class="quick-sale-grid">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+
+      <!-- HISTÓRICO DE VENDAS DO DIA SELECIONADO -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🧾 Vendas Registradas no Dia (<span id="salesCountBadge">0</span>)</h2>
+        </div>
+        <div id="dailySalesLog" class="sales-log-list">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 3: ESTOQUE E CADASTRO DE ITENS
+         ========================================== -->
+    <section id="tab-estoque" class="tab-panel">
+      <!-- RESUMO FINANCEIRO DO ESTOQUE -->
+      <div class="card">
+        <div class="sales-summary-grid">
+          <div>
+            <span class="s-label">Itens em Estoque</span>
+            <strong id="stockTotalUnits" class="s-val">0 un.</strong>
+          </div>
+          <div>
+            <span class="s-label">Custo Investido</span>
+            <strong id="stockTotalCost" class="s-val text-muted">R$ 0,00</strong>
+          </div>
+          <div>
+            <span class="s-label">Lucro Potencial</span>
+            <strong id="stockPotentialProfit" class="s-val text-emerald">R$ 0,00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORMULÁRIO DE CADASTRO / EDIÇÃO DE ITEM -->
+      <div class="card">
+        <div class="card-header">
+          <h2 id="productFormTitle">➕ Cadastrar Novo Item</h2>
+          <button type="button" id="btnCancelEditProduct" class="btn-text hidden">Cancelar edição</button>
+        </div>
+
+        <form id="productForm" class="form-grid">
+          <input type="hidden" id="productId" />
+
+          <div class="form-row-emoji">
+            <div class="form-group emoji-group">
+              <label for="productEmoji">Ícone</label>
+              <select id="productEmoji">
+                <option value="💧">💧 Água</option>
+                <option value="🍬">🍬 Bala/Chiclete</option>
+                <option value="🍫">🍫 Chocolate</option>
+                <option value="🥤">🥤 Refrigerante</option>
+                <option value="🧃">🧃 Suco/Energético</option>
+                <option value="🍪">🍪 Biscoito/Snack</option>
+                <option value="🥜">🥜 Castanha/Amendoim</option>
+                <option value="🔌">🔌 Cabo/Acessório</option>
+                <option value="📦">📦 Outro</option>
+              </select>
+            </div>
+
+            <div class="form-group flex-1">
+              <label for="productName">Nome do Item *</label>
+              <input type="text" id="productName" required placeholder="Ex: Água Mineral 500ml" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="productPrice">Preço de Venda (R$) *</label>
+              <input type="number" id="productPrice" step="0.01" min="0.01" required placeholder="Ex: 5,00" inputmode="decimal" />
+            </div>
+            <div class="form-group">
+              <label for="productCost">Custo Unitário (R$) *</label>
+              <input type="number" id="productCost" step="0.01" min="0" required placeholder="Ex: 1,50" inputmode="decimal" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="productStock">Qtd. em Estoque *</label>
+              <input type="number" id="productStock" step="1" min="0" required placeholder="Ex: 12" inputmode="numeric" />
+            </div>
+            <div class="form-group">
+              <label for="productMinStock">Alerta Estoque Mínimo</label>
+              <input type="number" id="productMinStock" step="1" min="0" value="3" placeholder="3" inputmode="numeric" />
+            </div>
+          </div>
+
+          <div id="marginPreview" class="margin-preview">
+            Lucro por unidade: <strong>R$ 0,00</strong> (0% de margem)
+          </div>
+
+          <button type="submit" id="btnSaveProduct" class="btn-primary">Salvar Item no Estoque</button>
+        </form>
+      </div>
+
+      <!-- LISTA DE ITENS CADASTRADOS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📦 Meus Itens Cadastrados</h2>
+          <button type="button" id="btnLoadSamples" class="btn-outline-sm">Carregar Exemplos</button>
+        </div>
+        <div id="inventoryList" class="inventory-list">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 4: HISTÓRICO E RELATÓRIOS
+         ========================================== -->
+    <section id="tab-historico" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2>📅 Período de Análise</h2>
+        </div>
+        <div class="period-tabs">
+          <button type="button" class="period-btn active" data-period="7d">Últimos 7 dias</button>
+          <button type="button" class="period-btn" data-period="month">Este Mês</button>
+          <button type="button" class="period-btn" data-period="all">Todo Histórico</button>
+        </div>
+
+        <div class="metrics-grid mt-12">
+          <div class="metric-box highlight-green">
+            <span class="metric-label">Lucro Líquido Total</span>
+            <strong id="histTotalNet" class="metric-val">R$ 0,00</strong>
+            <small id="histGrossTotal">Bruto: R$ 0,00</small>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Lucro Líquido Uber</span>
+            <strong id="histUberNet" class="metric-val">R$ 0,00</strong>
+            <small id="histFuelTotal">Combustível: R$ 0,00</small>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Lucro Líquido Vendas</span>
+            <strong id="histSalesNet" class="metric-val">R$ 0,00</strong>
+            <small id="histSalesCount">0 itens vendidos</small>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">KM e Corridas</span>
+            <strong id="histTotalKm" class="metric-val">0 km</strong>
+            <small id="histTotalTrips">0 corridas realizadas</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- RANKING DE PRODUTOS MAIS VENDIDOS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🏆 Itens Mais Lucrativos no Período</h2>
+        </div>
+        <div id="topProductsList" class="top-products-list">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+
+      <!-- DIAS REGISTRADOS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🗓️ Resumo Dia a Dia</h2>
+          <span class="card-sub">Toque em um dia para abrir/editar</span>
+        </div>
+        <div id="historyDaysList" class="history-days-list">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+
+      <!-- BACKUP DOS DADOS -->
+      <div class="card">
+        <div class="card-header">
+          <h2>💾 Backup e Segurança dos Dados</h2>
+        </div>
+        <p class="card-sub mb-12">
+          Seus dados ficam salvos neste aparelho. Você pode exportar uma cópia de segurança quando quiser.
+        </p>
+        <div class="backup-actions">
+          <button type="button" id="btnExportData" class="btn-outline">⬇️ Exportar Backup</button>
+          <label for="importFileInput" class="btn-outline file-label">⬆️ Importar Backup</label>
+          <input type="file" id="importFileInput" accept=".json" class="hidden" />
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST DE NOTIFICAÇÃO RÁPIDA -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- NAVEGAÇÃO INFERIOR (4 ABAS) -->
+  <nav class="bottom-nav">
+    <button type="button" class="nav-item active" data-tab="tab-corridas">
+      <span class="nav-icon">🚗</span>
+      <span class="nav-label">Corridas</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="tab-vendas">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Vender</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="tab-estoque">
+      <span class="nav-icon">📦</span>
+      <span class="nav-label">Estoque</span>
+      <span id="navStockBadge" class="nav-badge hidden">!</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="tab-historico">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Histórico</span>
+    </button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
