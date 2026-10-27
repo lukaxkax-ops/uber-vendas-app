@@ -18,10 +18,16 @@
         <span class="brand-icon">🚗</span>
         <div>
           <h1>UberPro <span class="brand-accent">&amp; Vendas</span></h1>
-          <p class="subtitle">Controle diário de corridas e itens extras</p>
+          <p class="subtitle">Controle diário sincronizado na nuvem</p>
         </div>
       </div>
-      <button id="btnToday" class="btn-today" title="Ir para Hoje">Hoje</button>
+      <div class="header-actions">
+        <button id="btnCloudSync" class="btn-sync" title="Toque para sincronizar agora">
+          <span id="syncIcon">☁️</span>
+          <span id="syncText">Sincronizado</span>
+        </button>
+        <button id="btnToday" class="btn-today" title="Ir para Hoje">Hoje</button>
+      </div>
     </div>
 
     <div class="date-bar">
@@ -296,7 +302,10 @@
       <div class="card">
         <div class="card-header">
           <h2>📦 Meus Itens Cadastrados</h2>
-          <button type="button" id="btnLoadSamples" class="btn-outline-sm">Carregar Exemplos</button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" id="btnForcePushCloud" class="btn-outline-sm" title="Envia os itens deste aparelho para o celular/PC">☁️ Enviar p/ Nuvem</button>
+            <button type="button" id="btnLoadSamples" class="btn-outline-sm">Carregar Exemplos</button>
+          </div>
         </div>
         <div id="inventoryList" class="inventory-list">
           <!-- Renderizado via JS -->

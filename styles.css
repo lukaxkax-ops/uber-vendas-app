@@ -93,6 +93,36 @@ body {
   color: var(--text-muted);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-sync {
+  background: var(--bg-card);
+  color: #cbd5e1;
+  border: 1px solid var(--border-color);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.74rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-sync.syncing {
+  color: var(--amber);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.btn-sync.synced {
+  color: var(--emerald);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
 .btn-today {
   background: var(--bg-card-elevated);
   color: var(--emerald);

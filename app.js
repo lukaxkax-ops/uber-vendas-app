@@ -3,6 +3,10 @@
 // ============================================================================
 
 const STORAGE_KEY = 'uber_vendas_app_data_v1';
+const CLOUD_OBJ_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a17abda1b51d43';
+const CLOUD_REALTIME_TOPIC = 'uber_vendas_sync_lukaxkax_d1cd189257';
+const CLOUD_NTFY_URL = `https://ntfy.sh/${CLOUD_REALTIME_TOPIC}`;
+const DEVICE_ID = 'dev_' + Math.random().toString(36).slice(2, 10);
 
 const DEFAULT_PRODUCTS = [
   {
@@ -48,9 +52,12 @@ let state = {
   selectedDate: getTodayISO(),
   activeTab: 'tab-corridas',
   historyPeriod: '7d',
+  updatedAt: 0,
   products: [],
   days: {} // { 'YYYY-MM-DD': { earnings: 0, fuel: 0, km: 0, trips: 0, notes: '', sales: [] } }
 };
+
+let pushDebounceTimer = null;
 
 // Utilitários de Data e Moeda
 function getTodayISO() {
@@ -84,36 +91,255 @@ function formatFriendlyDate(isoDate) {
   return `${d.toString().padStart(2, '0')}/${m.toString().padStart(2, '0')} (${weekday})`;
 }
 
-// Persistência Local
+function isDefaultData(products, days) {
+  const hasAnyDayActivity = Object.values(days || {}).some(
+    (d) =>
+      (Number(d.earnings) || 0) > 0 ||
+      (Number(d.fuel) || 0) > 0 ||
+      (Number(d.km) || 0) > 0 ||
+      (Number(d.trips) || 0) > 0 ||
+      (Array.isArray(d.sales) && d.sales.length > 0)
+  );
+  if (hasAnyDayActivity) return false;
+  if (!Array.isArray(products) || products.length !== DEFAULT_PRODUCTS.length) return false;
+  return products.every((p, idx) => {
+    const def = DEFAULT_PRODUCTS[idx];
+    return (
+      p.id === def.id &&
+      p.name === def.name &&
+      Number(p.price) === Number(def.price) &&
+      Number(p.cost) === Number(def.cost) &&
+      Number(p.stock) === Number(def.stock)
+    );
+  });
+}
+
+// Persistência Local + Sincronização na Nuvem
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       state.products = [...DEFAULT_PRODUCTS];
-      saveState();
+      state.updatedAt = 0;
+      saveStateLocalOnly();
       return;
     }
     const parsed = JSON.parse(raw);
     state.products = Array.isArray(parsed.products) ? parsed.products : [...DEFAULT_PRODUCTS];
     state.days = parsed.days && typeof parsed.days === 'object' ? parsed.days : {};
+
+    if (typeof parsed.updatedAt === 'number') {
+      state.updatedAt = parsed.updatedAt;
+    } else {
+      // Se o aparelho já tinha dados editados antes da atualização (ex: o estoque alterado no PC),
+      // marca como mais recente para subir automaticamente para a nuvem!
+      state.updatedAt = isDefaultData(state.products, state.days) ? 0 : Date.now();
+      saveStateLocalOnly();
+    }
   } catch (err) {
     console.error('Erro ao carregar dados locais:', err);
     state.products = [...DEFAULT_PRODUCTS];
     state.days = {};
+    state.updatedAt = 0;
   }
 }
 
-function saveState() {
+function saveStateLocalOnly() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
+        updatedAt: state.updatedAt,
         products: state.products,
         days: state.days
       })
     );
   } catch (err) {
     console.error('Erro ao salvar dados locais:', err);
+  }
+}
+
+function saveState() {
+  state.updatedAt = Date.now();
+  saveStateLocalOnly();
+  schedulePushToCloud();
+}
+
+function setSyncStatusUI(status, label) {
+  const btn = document.getElementById('btnCloudSync');
+  const icon = document.getElementById('syncIcon');
+  const text = document.getElementById('syncText');
+  if (!btn || !icon || !text) return;
+
+  btn.classList.remove('syncing', 'synced');
+  if (status === 'syncing') {
+    btn.classList.add('syncing');
+    icon.textContent = '🔄';
+    text.textContent = label || 'Sincronizando...';
+  } else if (status === 'synced') {
+    btn.classList.add('synced');
+    icon.textContent = '☁️';
+    text.textContent = label || 'Sincronizado';
+  } else {
+    icon.textContent = '⚠️';
+    text.textContent = label || 'Offline';
+  }
+}
+
+function schedulePushToCloud() {
+  setSyncStatusUI('syncing', 'Salvando...');
+  if (pushDebounceTimer) clearTimeout(pushDebounceTimer);
+  pushDebounceTimer = setTimeout(() => {
+    pushToCloud();
+  }, 450);
+}
+
+async function pushToCloud() {
+  setSyncStatusUI('syncing', 'Enviando...');
+  const payload = {
+    updatedAt: state.updatedAt || Date.now(),
+    deviceId: DEVICE_ID,
+    products: state.products,
+    days: state.days
+  };
+
+  let ok = false;
+
+  // 1) Envia em tempo real via ntfy (atualiza outros aparelhos abertos na hora e guarda em cache)
+  try {
+    const resNtfy = await fetch(CLOUD_NTFY_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    if (resNtfy.ok) ok = true;
+  } catch (e) {
+    console.warn('Falha ao publicar no canal realtime:', e);
+  }
+
+  // 2) Salva no banco permanente restful-api.dev
+  try {
+    const resObj = await fetch(CLOUD_OBJ_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'uber-vendas-sync',
+        data: payload
+      })
+    });
+    if (resObj.ok) ok = true;
+  } catch (e) {
+    console.warn('Falha ao salvar no banco permanente:', e);
+  }
+
+  if (ok) {
+    setSyncStatusUI('synced', 'Sincronizado');
+  } else {
+    setSyncStatusUI('error', 'Salvo local');
+  }
+}
+
+function applyRemotePayloadIfNewer(remoteData, notifyUser = false) {
+  if (!remoteData || typeof remoteData !== 'object') return false;
+  const remoteUpdated = Number(remoteData.updatedAt) || 0;
+  if (remoteUpdated <= 0) return false;
+
+  if (remoteUpdated > (Number(state.updatedAt) || 0)) {
+    state.updatedAt = remoteUpdated;
+    if (Array.isArray(remoteData.products)) {
+      state.products = remoteData.products;
+    }
+    if (remoteData.days && typeof remoteData.days === 'object') {
+      state.days = remoteData.days;
+    }
+    saveStateLocalOnly();
+    renderAll();
+    setSyncStatusUI('synced', 'Sincronizado');
+    if (notifyUser) {
+      showToast('☁️ Dados atualizados da nuvem!');
+    }
+    return true;
+  }
+  return false;
+}
+
+async function syncFromCloud(manualClick = false) {
+  setSyncStatusUI('syncing', 'Sincronizando...');
+  let bestRemote = null;
+
+  // Busca em paralelo do canal realtime (ntfy) e do banco permanente (restful-api)
+  const [ntfyResult, objResult] = await Promise.allSettled([
+    fetch(`${CLOUD_NTFY_URL}/json?poll=1&since=12h`, { cache: 'no-store' }).then((r) =>
+      r.ok ? r.text() : ''
+    ),
+    fetch(CLOUD_OBJ_URL, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+  ]);
+
+  if (ntfyResult.status === 'fulfilled' && ntfyResult.value) {
+    const lines = ntfyResult.value.trim().split('\n');
+    for (const line of lines) {
+      try {
+        const evt = JSON.parse(line);
+        if (evt.event === 'message' && evt.message) {
+          const parsedMsg = JSON.parse(evt.message);
+          if (
+            parsedMsg &&
+            typeof parsedMsg.updatedAt === 'number' &&
+            (!bestRemote || parsedMsg.updatedAt > bestRemote.updatedAt)
+          ) {
+            bestRemote = parsedMsg;
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (objResult.status === 'fulfilled' && objResult.value?.data) {
+    const objData = objResult.value.data;
+    if (
+      objData &&
+      typeof objData.updatedAt === 'number' &&
+      (!bestRemote || objData.updatedAt > bestRemote.updatedAt)
+    ) {
+      bestRemote = objData;
+    }
+  }
+
+  const remoteUpdated = Number(bestRemote?.updatedAt) || 0;
+  const localUpdated = Number(state.updatedAt) || 0;
+
+  if (remoteUpdated > localUpdated) {
+    applyRemotePayloadIfNewer(bestRemote, manualClick);
+  } else if (localUpdated > remoteUpdated) {
+    // O aparelho atual tem dados mais novos (ex: estoque que você acabou de editar no PC!)
+    await pushToCloud();
+    if (manualClick) {
+      showToast('☁️ Dados deste aparelho enviados para a nuvem!');
+    }
+  } else {
+    setSyncStatusUI('synced', 'Sincronizado');
+    if (manualClick) {
+      showToast('☁️ Tudo já está sincronizado!');
+    }
+  }
+}
+
+function startRealtimeSyncListener() {
+  if (typeof EventSource === 'undefined') return;
+  try {
+    const es = new EventSource(`${CLOUD_NTFY_URL}/sse`);
+    es.onmessage = (event) => {
+      try {
+        const evt = JSON.parse(event.data);
+        if (evt.message) {
+          const remoteData = JSON.parse(evt.message);
+          if (remoteData.deviceId !== DEVICE_ID) {
+            applyRemotePayloadIfNewer(remoteData, true);
+          }
+        }
+      } catch (_) {}
+    };
+  } catch (e) {
+    console.warn('SSE indisponível:', e);
   }
 }
 
@@ -715,10 +941,37 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
   renderAll();
+  syncFromCloud(false);
+  startRealtimeSyncListener();
+
+  // Sincroniza sempre que voltar para a aba/app no celular ou PC
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      syncFromCloud(false);
+    }
+  });
+  window.addEventListener('focus', () => syncFromCloud(false));
+
+  // Botão de sincronização no topo
+  const btnCloudSync = document.getElementById('btnCloudSync');
+  if (btnCloudSync) {
+    btnCloudSync.addEventListener('click', () => syncFromCloud(true));
+  }
+
+  // Botão para forçar envio dos dados deste aparelho (ex: estoque do PC) para a nuvem
+  const btnForcePush = document.getElementById('btnForcePushCloud');
+  if (btnForcePush) {
+    btnForcePush.addEventListener('click', async () => {
+      state.updatedAt = Date.now();
+      saveStateLocalOnly();
+      await pushToCloud();
+      showToast('☁️ Estoque e dados deste aparelho enviados para o celular/PC!');
+    });
+  }
 
   // Registro opcional de Service Worker (PWA)
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then((reg) => reg.update()).catch(() => {});
   }
 
   // Navegação de abas
