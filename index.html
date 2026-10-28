@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#0f172a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>UberPro & Vendas — Controle Diário</title>
+  <title>UberPro & Vendas — Lucas & Bianca</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- HEADER FIXO COM SELETOR DE DATA -->
+  <!-- HEADER FIXO COM SELETOR DE PERFIL E DATA -->
   <header class="app-header">
     <div class="header-top">
       <div class="brand">
@@ -30,6 +30,18 @@
       </div>
     </div>
 
+    <!-- SELETOR DE PERFIL: LUCAS | BIANCA -->
+    <div class="profile-switcher" role="tablist" aria-label="Selecionar Perfil">
+      <button type="button" class="profile-btn active" data-profile="lucas">
+        <span class="profile-avatar">👨🏻‍✈️</span>
+        <span>Perfil <strong>Lucas</strong></span>
+      </button>
+      <button type="button" class="profile-btn" data-profile="bianca">
+        <span class="profile-avatar">👩🏻‍✈️</span>
+        <span>Perfil <strong>Bianca</strong></span>
+      </button>
+    </div>
+
     <div class="date-bar">
       <button id="btnPrevDay" class="date-nav-btn" aria-label="Dia anterior">◀</button>
       <div class="date-input-wrapper">
@@ -46,7 +58,9 @@
     <!-- RESUMO GERAL DO DIA (Visível nas abas de Corridas e Vender) -->
     <section id="dailyHeroSummary" class="hero-card">
       <div class="hero-main">
-        <span class="hero-label">LUCRO LÍQUIDO TOTAL DO DIA</span>
+        <span class="hero-label">
+          LUCRO LÍQUIDO DO DIA — <span id="heroProfileName">LUCAS</span>
+        </span>
         <strong id="heroTotalNetProfit" class="hero-value">R$ 0,00</strong>
         <span id="heroGrossRevenue" class="hero-sub">Faturamento bruto total: R$ 0,00</span>
       </div>
@@ -74,21 +88,59 @@
     </div>
 
     <!-- ==========================================
-         ABA 1: CORRIDAS DO DIA (UBER)
+         ABA 1: CORRIDAS DO DIA (UBER - SESSÕES)
          ========================================== -->
     <section id="tab-corridas" class="tab-panel active">
-      <div class="card">
+
+      <!-- CRONÔMETRO DA SESSÃO -->
+      <div class="card stopwatch-card">
         <div class="card-header">
-          <h2>📝 Dados das Corridas no Dia</h2>
-          <span id="saveStatusIndicator" class="save-badge">Salvo</span>
+          <div>
+            <h2>⏱️ Cronômetro da Sessão</h2>
+            <p class="card-sub">Meça o tempo exato que você ficou rodando nesta sessão</p>
+          </div>
+          <span id="stopwatchStatusBadge" class="save-badge">Parado</span>
         </div>
 
-        <div class="form-grid">
+        <div class="stopwatch-display-wrap">
+          <div id="stopwatchDisplay" class="stopwatch-display">00:00:00</div>
+          <div class="stopwatch-controls">
+            <button type="button" id="btnTimerStartPause" class="btn-timer start">▶️ Iniciar</button>
+            <button type="button" id="btnTimerReset" class="btn-timer reset">🔄 Zerar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORMULÁRIO DE LANÇAMENTO DE SESSÃO DE CORRIDAS -->
+      <div class="card">
+        <div class="card-header">
+          <h2 id="sessionFormTitle">📝 Lançar Sessão de Corridas</h2>
+          <button type="button" id="btnCancelEditSession" class="btn-text hidden">Cancelar edição</button>
+        </div>
+
+        <form id="uberSessionForm" class="form-grid">
+          <input type="hidden" id="editingSessionId" />
+
+          <!-- HORÁRIO E CARRO USADO -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="uberTime">🕒 Horário da Sessão</label>
+              <input type="time" id="uberTime" required />
+            </div>
+
+            <div class="form-group">
+              <label for="uberCar">🚘 Carro Usado</label>
+              <select id="uberCar" required>
+                <option value="Onix">🚘 Onix</option>
+                <option value="Yaris">🚗 Yaris</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- GANHOS NAS CORRIDAS -->
           <div class="form-group">
             <label for="uberEarnings">💰 Ganhos nas Corridas (R$)</label>
-            <div class="input-with-QuickAdd">
-              <input type="number" id="uberEarnings" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
-            </div>
+            <input type="number" id="uberEarnings" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
             <div class="quick-chips">
               <button type="button" class="chip-btn" data-add-field="uberEarnings" data-amount="15">+R$ 15</button>
               <button type="button" class="chip-btn" data-add-field="uberEarnings" data-amount="25">+R$ 25</button>
@@ -97,19 +149,28 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="uberFuel">⛽ Gasto com Combustível (R$)</label>
-            <input type="number" id="uberFuel" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
-            <div class="quick-chips">
-              <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="30">+R$ 30</button>
-              <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="50">+R$ 50</button>
-              <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="100">+R$ 100</button>
+          <!-- COMBUSTÍVEL (GASTO TOTAL + PREÇO DO LITRO) -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="uberFuel">⛽ Gasto Combustível (R$)</label>
+              <input type="number" id="uberFuel" step="0.01" min="0" placeholder="0,00" inputmode="decimal" />
+              <div class="quick-chips">
+                <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="30">+R$ 30</button>
+                <button type="button" class="chip-btn" data-add-field="uberFuel" data-amount="50">+R$ 50</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="uberFuelPrice">🏷️ Preço Combustível (R$/L)</label>
+              <input type="number" id="uberFuelPrice" step="0.01" min="0" placeholder="Ex: 5,89" inputmode="decimal" />
+              <small id="fuelLitersPreview" class="field-hint">Litros: 0,0 L</small>
             </div>
           </div>
 
+          <!-- KM RODADOS E NÚMERO DE CORRIDAS -->
           <div class="form-row-2">
             <div class="form-group">
-              <label for="uberKm">🛣️ KM Rodados no Dia</label>
+              <label for="uberKm">🛣️ KM Rodados</label>
               <input type="number" id="uberKm" step="0.1" min="0" placeholder="0" inputmode="decimal" />
               <div class="quick-chips">
                 <button type="button" class="chip-btn" data-add-field="uberKm" data-amount="10">+10 km</button>
@@ -127,23 +188,46 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="uberNotes">🗒️ Observações do Dia (opcional)</label>
-            <input type="text" id="uberNotes" placeholder="Ex: Dia chuvoso, dinâmica boa à noite..." />
+          <!-- TEMPO DA SESSÃO E OBSERVAÇÕES -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="uberDurationText">⏱️ Tempo da Sessão (hh:mm:ss)</label>
+              <input type="text" id="uberDurationText" placeholder="00:00:00 (ou use o cronômetro)" />
+            </div>
+
+            <div class="form-group">
+              <label for="uberNotes">🗒️ Observação (opcional)</label>
+              <input type="text" id="uberNotes" placeholder="Ex: Manhã / Chuva..." />
+            </div>
           </div>
+
+          <button type="submit" id="btnSaveUberSession" class="btn-primary">
+            💾 Salvar Sessão de Corridas
+          </button>
+        </form>
+      </div>
+
+      <!-- LISTA DE SESSÕES DE CORRIDAS SALVAS NO DIA -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Sessões do Dia (<span id="sessionsCountBadge">0</span>)</h2>
+          <span class="card-sub" id="totalDurationDayBadge">Tempo total: 00h 00m</span>
+        </div>
+        <div id="dailySessionsList" class="sales-log-list">
+          <!-- Renderizado via JS -->
         </div>
       </div>
 
-      <!-- MÉTRICAS DE DESEMPENHO DO DIA -->
+      <!-- MÉTRICAS DE DESEMPENHO DO DIA (SOMA DAS SESSÕES) -->
       <div class="card">
         <div class="card-header">
-          <h2>📊 Desempenho nas Corridas</h2>
+          <h2>📊 Desempenho Geral nas Corridas Hoje</h2>
         </div>
         <div class="metrics-grid">
           <div class="metric-box highlight-green">
             <span class="metric-label">Lucro Líquido Uber</span>
             <strong id="metricUberProfit" class="metric-val">R$ 0,00</strong>
-            <small>Ganhos − Combustível</small>
+            <small id="metricProfitPerHour">Ganhos − Combustível</small>
           </div>
           <div class="metric-box">
             <span class="metric-label">Ganho Bruto / KM</span>
@@ -319,7 +403,7 @@
     <section id="tab-historico" class="tab-panel">
       <div class="card">
         <div class="card-header">
-          <h2>📅 Período de Análise</h2>
+          <h2>📅 Período de Análise (<span id="histProfileLabel">Lucas</span>)</h2>
         </div>
         <div class="period-tabs">
           <button type="button" class="period-btn active" data-period="7d">Últimos 7 dias</button>
@@ -378,7 +462,7 @@
           <h2>💾 Backup e Segurança dos Dados</h2>
         </div>
         <p class="card-sub mb-12">
-          Seus dados ficam salvos neste aparelho. Você pode exportar uma cópia de segurança quando quiser.
+          Seus dados ficam salvos neste aparelho e sincronizados na nuvem. Você também pode exportar uma cópia de segurança.
         </p>
         <div class="backup-actions">
           <button type="button" id="btnExportData" class="btn-outline">⬇️ Exportar Backup</button>

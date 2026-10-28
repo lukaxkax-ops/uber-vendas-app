@@ -138,6 +138,131 @@ body {
   transform: scale(0.96);
 }
 
+/* SELETOR DE PERFIL (LUCAS / BIANCA) */
+.profile-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+  background: var(--bg-input);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.profile-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.profile-btn.active[data-profile="lucas"] {
+  background: var(--emerald-soft);
+  color: #ffffff;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.profile-btn.active[data-profile="bianca"] {
+  background: rgba(236, 72, 153, 0.18);
+  color: #ffffff;
+  border-color: rgba(236, 72, 153, 0.55);
+}
+
+.profile-avatar {
+  font-size: 1.1rem;
+}
+
+/* CRONÔMETRO DA SESSÃO */
+.stopwatch-card {
+  background: linear-gradient(145deg, #162238 0%, #151f32 100%);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.stopwatch-display-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.stopwatch-display {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: #38bdf8;
+}
+
+.stopwatch-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-timer {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-timer.start {
+  background: var(--emerald);
+  color: #06281e;
+}
+
+.btn-timer.pause {
+  background: var(--amber);
+  color: #0f172a;
+}
+
+.btn-timer.reset {
+  background: var(--bg-card-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.field-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.session-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.session-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--bg-card-elevated);
+  color: #cbd5e1;
+  border: 1px solid var(--border-color);
+}
+
 .date-bar {
   display: flex;
   align-items: center;
