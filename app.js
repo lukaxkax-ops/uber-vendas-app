@@ -656,6 +656,7 @@ function renderAll() {
 }
 
 function renderProfileSwitcher() {
+  document.body.dataset.activeProfile = state.activeProfile;
   document.querySelectorAll('.profile-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.profile === state.activeProfile);
   });
