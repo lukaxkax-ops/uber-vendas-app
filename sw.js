@@ -1,10 +1,10 @@
-const CACHE_NAME = 'uber-vendas-v4';
+const CACHE_NAME = 'uber-vendas-v5';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=4',
-  './app.js?v=4',
-  './manifest.json?v=4'
+  './styles.css?v=5',
+  './app.js?v=5',
+  './manifest.json?v=5'
 ];
 
 self.addEventListener('install', (event) => {

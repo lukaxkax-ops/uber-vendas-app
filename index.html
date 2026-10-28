@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>UberPro & Vendas — Lucas & Bianca</title>
-  <link rel="manifest" href="manifest.json?v=4" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="manifest" href="manifest.json?v=5" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <!-- HEADER FIXO COM SELETOR DE PERFIL E DATA -->
@@ -93,26 +93,7 @@
          ========================================== -->
     <section id="tab-corridas" class="tab-panel active">
 
-      <!-- CRONÔMETRO DA SESSÃO -->
-      <div class="card stopwatch-card">
-        <div class="card-header">
-          <div>
-            <h2>⏱️ Cronômetro da Sessão</h2>
-            <p class="card-sub">Meça o tempo exato que você ficou rodando nesta sessão</p>
-          </div>
-          <span id="stopwatchStatusBadge" class="save-badge">Parado</span>
-        </div>
-
-        <div class="stopwatch-display-wrap">
-          <div id="stopwatchDisplay" class="stopwatch-display">00:00:00</div>
-          <div class="stopwatch-controls">
-            <button type="button" id="btnTimerStartPause" class="btn-timer start">▶️ Iniciar</button>
-            <button type="button" id="btnTimerReset" class="btn-timer reset">🔄 Zerar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- FORMULÁRIO DE LANÇAMENTO DE SESSÃO DE CORRIDAS -->
+      <!-- FORMULÁRIO DE LANÇAMENTO DE SESSÃO DE CORRIDAS (COM CRONÔMETRO INTEGRADO) -->
       <div class="card">
         <div class="card-header">
           <h2 id="sessionFormTitle">📝 Lançar Sessão de Corridas</h2>
@@ -122,19 +103,47 @@
         <form id="uberSessionForm" class="form-grid">
           <input type="hidden" id="editingSessionId" />
 
-          <!-- HORÁRIO E CARRO USADO -->
+          <!-- CRONÔMETRO INTEGRADO AO LANÇAMENTO DA SESSÃO -->
+          <div class="session-timer-box">
+            <div class="session-timer-top">
+              <span class="session-timer-label">⏱️ Cronômetro da Sessão</span>
+              <span id="stopwatchStatusBadge" class="save-badge">Parado</span>
+            </div>
+            <div class="stopwatch-display-wrap">
+              <div id="stopwatchDisplay" class="stopwatch-display">00:00:00</div>
+              <div class="stopwatch-controls">
+                <button type="button" id="btnTimerStartPause" class="btn-timer start">▶️ Iniciar</button>
+                <button type="button" id="btnTimerReset" class="btn-timer reset">🔄 Zerar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- HORÁRIO DE INÍCIO E HORÁRIO DE ENCERRAMENTO -->
           <div class="form-row-2">
             <div class="form-group">
-              <label for="uberTime">🕒 Horário da Sessão</label>
-              <input type="time" id="uberTime" required />
+              <label for="uberStartTime">🕒 Horário de Início</label>
+              <input type="time" id="uberStartTime" required />
             </div>
 
+            <div class="form-group">
+              <label for="uberEndTime">🏁 Horário de Encerramento</label>
+              <input type="time" id="uberEndTime" />
+            </div>
+          </div>
+
+          <!-- CARRO USADO E TEMPO DA SESSÃO -->
+          <div class="form-row-2">
             <div class="form-group">
               <label for="uberCar">🚘 Carro Usado</label>
               <select id="uberCar" required>
                 <option value="Onix">🚘 Onix</option>
                 <option value="Yaris">🚗 Yaris</option>
               </select>
+            </div>
+
+            <div class="form-group">
+              <label for="uberDurationText">⏱️ Tempo Total (hh:mm:ss)</label>
+              <input type="text" id="uberDurationText" placeholder="00:00:00" />
             </div>
           </div>
 
@@ -189,17 +198,10 @@
             </div>
           </div>
 
-          <!-- TEMPO DA SESSÃO E OBSERVAÇÕES -->
-          <div class="form-row-2">
-            <div class="form-group">
-              <label for="uberDurationText">⏱️ Tempo da Sessão (hh:mm:ss)</label>
-              <input type="text" id="uberDurationText" placeholder="00:00:00 (ou use o cronômetro)" />
-            </div>
-
-            <div class="form-group">
-              <label for="uberNotes">🗒️ Observação (opcional)</label>
-              <input type="text" id="uberNotes" placeholder="Ex: Manhã / Chuva..." />
-            </div>
+          <!-- OBSERVAÇÕES -->
+          <div class="form-group">
+            <label for="uberNotes">🗒️ Observação da Sessão (opcional)</label>
+            <input type="text" id="uberNotes" placeholder="Ex: Turno da manhã / Dinâmica boa..." />
           </div>
 
           <button type="submit" id="btnSaveUberSession" class="btn-primary">
@@ -499,6 +501,6 @@
     </button>
   </nav>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

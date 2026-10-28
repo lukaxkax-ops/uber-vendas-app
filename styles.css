@@ -226,10 +226,27 @@ body[data-active-profile="bianca"] .btn-primary {
   line-height: 1;
 }
 
-/* CRONÔMETRO DA SESSÃO */
-.stopwatch-card {
-  background: linear-gradient(145deg, #162238 0%, #151f32 100%);
-  border-color: rgba(59, 130, 246, 0.35);
+/* CRONÔMETRO INTEGRADO AO LANÇAMENTO DA SESSÃO */
+.session-timer-box {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-timer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.session-timer-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #bae6fd;
 }
 
 .stopwatch-display-wrap {
@@ -238,10 +255,10 @@ body[data-active-profile="bianca"] .btn-primary {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  background: var(--bg-input);
+  background: #070b14;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
 }
 
 .stopwatch-display {

@@ -322,21 +322,39 @@ function getElapsedTimerSeconds(profileKey = state.activeProfile) {
   return Math.max(0, Math.floor(t.accumulatedSec + deltaSec));
 }
 
+function calcDurationBetweenHHMM(startHHMM, endHHMM) {
+  if (!startHHMM || !endHHMM) return 0;
+  const [sh, sm] = startHHMM.split(':').map(Number);
+  const [eh, em] = endHHMM.split(':').map(Number);
+  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return 0;
+  let startMin = sh * 60 + sm;
+  let endMin = eh * 60 + em;
+  if (endMin < startMin) {
+    // Passou da meia-noite
+    endMin += 24 * 60;
+  }
+  return (endMin - startMin) * 60;
+}
+
 function toggleTimerStartPause() {
   const t = getTimerState();
   if (t.running) {
-    // Pausar
+    // Pausar -> preenche também o horário de encerramento com a hora atual
     const totalSec = getElapsedTimerSeconds();
+    const endTimeInput = document.getElementById('uberEndTime');
+    if (endTimeInput) {
+      endTimeInput.value = getCurrentTimeHHMM();
+    }
     saveTimerState({
       running: false,
       startedAt: null,
       accumulatedSec: totalSec
     });
   } else {
-    // Iniciar
-    const timeInput = document.getElementById('uberTime');
-    if (timeInput && !timeInput.value) {
-      timeInput.value = getCurrentTimeHHMM();
+    // Iniciar -> preenche o horário de início se ainda não começou
+    const startTimeInput = document.getElementById('uberStartTime');
+    if (startTimeInput && (!t.accumulatedSec || !startTimeInput.value)) {
+      startTimeInput.value = getCurrentTimeHHMM();
     }
     saveTimerState({
       running: true,
@@ -730,10 +748,10 @@ function renderUberTab() {
   const day = getDayRecord(state.selectedDate);
   const summary = calcDaySummary(day);
 
-  // Define horário padrão se estiver vazio e não estiver editando
-  const timeInput = document.getElementById('uberTime');
-  if (timeInput && !timeInput.value && document.activeElement !== timeInput) {
-    timeInput.value = getCurrentTimeHHMM();
+  // Define horário de início padrão se estiver vazio e não estiver editando
+  const startTimeInput = document.getElementById('uberStartTime');
+  if (startTimeInput && !startTimeInput.value && document.activeElement !== startTimeInput) {
+    startTimeInput.value = getCurrentTimeHHMM();
   }
 
   updateFuelLitersPreview();
@@ -761,7 +779,10 @@ function renderUberTab() {
             ? formatSecondsToShortHM(sess.durationSeconds)
             : sess.durationText && sess.durationText !== '00:00:00'
             ? sess.durationText
-            : 'Sem cronômetro';
+            : 'Sem duração';
+
+        const startT = sess.startTime || sess.time || '--:--';
+        const endT = sess.endTime ? ` às ${sess.endTime}` : '';
 
         const fuelPriceInfo =
           Number(sess.fuelPrice) > 0
@@ -777,7 +798,7 @@ function renderUberTab() {
             <div class="inv-top">
               <div>
                 <div class="inv-name">
-                  Sessão #${idx + 1} • 🕒 ${escapeHtml(sess.time || '--:--')} • ${carIcon} ${escapeHtml(sess.car || 'Onix')}
+                  Sessão #${idx + 1} • 🕒 ${escapeHtml(startT + endT)} • ${carIcon} ${escapeHtml(sess.car || 'Onix')}
                 </div>
                 <div class="session-badges">
                   <span class="session-tag">⏱️ ${escapeHtml(durLabel)}</span>
@@ -1194,7 +1215,8 @@ function resetSessionForm() {
   if (!form) return;
   form.reset();
   document.getElementById('editingSessionId').value = '';
-  document.getElementById('uberTime').value = getCurrentTimeHHMM();
+  document.getElementById('uberStartTime').value = getCurrentTimeHHMM();
+  document.getElementById('uberEndTime').value = '';
   document.getElementById('uberCar').value = 'Onix';
   document.getElementById('sessionFormTitle').textContent = '📝 Lançar Sessão de Corridas';
   document.getElementById('btnSaveUberSession').textContent = '💾 Salvar Sessão de Corridas';
@@ -1379,6 +1401,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('uberFuel').addEventListener('input', updateFuelLitersPreview);
   document.getElementById('uberFuelPrice').addEventListener('input', updateFuelLitersPreview);
 
+  // Calcula automaticamente a duração se o usuário preencher Horário de Início e Encerramento e o cronômetro estiver zerado
+  const autoCalcTimeRange = () => {
+    if (getElapsedTimerSeconds() > 0) return;
+    const st = document.getElementById('uberStartTime').value;
+    const et = document.getElementById('uberEndTime').value;
+    if (st && et) {
+      const diffSec = calcDurationBetweenHHMM(st, et);
+      if (diffSec > 0) {
+        document.getElementById('uberDurationText').value = formatSecondsToHHMMSS(diffSec);
+      }
+    }
+  };
+  document.getElementById('uberStartTime').addEventListener('change', autoCalcTimeRange);
+  document.getElementById('uberEndTime').addEventListener('change', autoCalcTimeRange);
+
   // Botões de adição rápida (+R$ 15, +R$ 50, +10km, etc.) no formulário de sessão
   document.querySelectorAll('[data-add-field]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -1412,7 +1449,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('uberSessionForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const editingId = document.getElementById('editingSessionId').value;
-    const time = document.getElementById('uberTime').value || getCurrentTimeHHMM();
+    const startTime = document.getElementById('uberStartTime').value || getCurrentTimeHHMM();
+    let endTime = document.getElementById('uberEndTime').value || '';
     const car = document.getElementById('uberCar').value || 'Onix';
     const earnings = Math.max(0, parseFloat(document.getElementById('uberEarnings').value) || 0);
     const fuel = Math.max(0, parseFloat(document.getElementById('uberFuel').value) || 0);
@@ -1423,9 +1461,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const durationInputVal = document.getElementById('uberDurationText').value.trim();
     const timerElapsed = getElapsedTimerSeconds();
+    if (!endTime && timerElapsed > 0) {
+      endTime = getCurrentTimeHHMM();
+    }
+
     let durationSeconds = parseHHMMSSToSeconds(durationInputVal);
     if (durationSeconds === 0 && timerElapsed > 0) {
       durationSeconds = timerElapsed;
+    }
+    if (durationSeconds === 0 && startTime && endTime) {
+      durationSeconds = calcDurationBetweenHHMM(startTime, endTime);
     }
     const durationText = formatSecondsToHHMMSS(durationSeconds);
 
@@ -1434,7 +1479,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editingId) {
       const existing = day.sessions.find((s) => s.sessionId === editingId);
       if (existing) {
-        existing.time = time;
+        existing.startTime = startTime;
+        existing.endTime = endTime;
+        existing.time = startTime;
         existing.car = car;
         existing.earnings = earnings;
         existing.fuel = fuel;
@@ -1449,7 +1496,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       day.sessions.push({
         sessionId: 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        time,
+        startTime,
+        endTime,
+        time: startTime,
         car,
         earnings,
         fuel,
@@ -1478,7 +1527,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const sess = day.sessions.find((s) => s.sessionId === editBtn.dataset.editSessionId);
       if (sess) {
         document.getElementById('editingSessionId').value = sess.sessionId;
-        document.getElementById('uberTime').value = sess.time || '08:00';
+        document.getElementById('uberStartTime').value = sess.startTime || sess.time || '08:00';
+        document.getElementById('uberEndTime').value = sess.endTime || '';
         document.getElementById('uberCar').value = sess.car || 'Onix';
         document.getElementById('uberEarnings').value = sess.earnings || '';
         document.getElementById('uberFuel').value = sess.fuel || '';
@@ -1489,7 +1539,8 @@ document.addEventListener('DOMContentLoaded', () => {
           sess.durationText || formatSecondsToHHMMSS(sess.durationSeconds || 0);
         document.getElementById('uberNotes').value = sess.notes || '';
 
-        document.getElementById('sessionFormTitle').textContent = `✏️ Editando Sessão (${sess.time})`;
+        const labelTime = (sess.startTime || sess.time || '') + (sess.endTime ? ` às ${sess.endTime}` : '');
+        document.getElementById('sessionFormTitle').textContent = `✏️ Editando Sessão (${labelTime})`;
         document.getElementById('btnSaveUberSession').textContent = '💾 Atualizar Sessão';
         document.getElementById('btnCancelEditSession').classList.remove('hidden');
         updateFuelLitersPreview();
@@ -1502,7 +1553,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (delBtn) {
       const day = getDayRecord(state.selectedDate);
       const sess = day.sessions.find((s) => s.sessionId === delBtn.dataset.deleteSessionId);
-      if (sess && confirm(`Deseja excluir esta sessão das ${sess.time || '--:--'}?`)) {
+      if (sess && confirm(`Deseja excluir esta sessão das ${sess.startTime || sess.time || '--:--'}?`)) {
         day.sessions = day.sessions.filter((s) => s.sessionId !== sess.sessionId);
         saveState();
         renderAll();
